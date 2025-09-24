@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -25,7 +25,9 @@ export default function SellPage({ params }: { params: { id: string } }) {
   const [error, setError] = useState("")
   const [images, setImages] = useState<string[]>([])
   const [tags, setTags] = useState<string[]>([])
-    const [userListings, setUserListings] = useState<Product[]>([]);
+  const [userListings, setUserListings] = useState<Product[]>([])
+  const [paymentCompleted, setPaymentCompleted] = useState(false)
+  const [paymentLoading, setPaymentLoading] = useState(false)
   
 
   const [newTag, setNewTag] = useState("")
@@ -38,6 +40,28 @@ export default function SellPage({ params }: { params: { id: string } }) {
     location: "",
   })
   const router = useRouter()
+
+  // Check for payment success on component mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const paymentId = urlParams.get('paymentId')
+    const PayerID = urlParams.get('PayerID')
+    
+    if (paymentId && PayerID) {
+      // Payment was successful, restore form data
+      const savedData = localStorage.getItem('pendingListing')
+      if (savedData) {
+        const { formData: savedFormData, images: savedImages, tags: savedTags } = JSON.parse(savedData)
+        setFormData(savedFormData)
+        setImages(savedImages)
+        setTags(savedTags)
+        localStorage.removeItem('pendingListing')
+      }
+      setPaymentCompleted(true)
+      // Clean URL
+      window.history.replaceState({}, document.title, window.location.pathname)
+    }
+  }, [])
 
 
 function getProductById(id: string) {
@@ -88,12 +112,46 @@ function getProductById(id: string) {
     setTags((prev) => prev.filter((tag) => tag !== tagToRemove))
   }
 
+const handlePayment = async () => {
+  setPaymentLoading(true)
+  try {
+    const response = await fetch('/api/paypal/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        items: [{
+          id: 'listing-fee',
+          name: 'StudentMarket Listing Fee',
+          price: 5.00,
+          quantity: 1
+        }]
+      })
+    })
+    
+    const data = await response.json()
+    if (data.url) {
+      // Store form data in localStorage before redirect
+      localStorage.setItem('pendingListing', JSON.stringify({ formData, images, tags }))
+      window.location.href = data.url
+    }
+  } catch (error) {
+    setError('Payment failed. Please try again.')
+  } finally {
+    setPaymentLoading(false)
+  }
+}
+
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault()
   setError("")
 
   if (!isAuthenticated) {
     setError("Please sign in to list an item")
+    return
+  }
+
+  if (!paymentCompleted) {
+    setError("Please complete the $5 listing fee payment first")
     return
   }
 
@@ -147,16 +205,18 @@ const handleSubmit = async (e: React.FormEvent) => {
     // ✅ Add the new listing to state for the current user
     setUserListings((prev) => [result, ...prev])
 
-    // Optionally reset form
- setFormData({
-  title: "",
-  description: "",
-  price: 0,     
-  category: "",
-  condition: "",
-})
-setImages([])
-setTags([])   // <- use your actual state setter for tags
+    // Reset form and payment state
+    setFormData({
+      title: "",
+      description: "",
+      price: "",     
+      category: "",
+      condition: "",
+      location: ""
+    })
+    setImages([])
+    setTags([])
+    setPaymentCompleted(false)
 
     // Remove router push if you want to stay on the same page
     // router.push("/dashboard")
@@ -405,21 +465,50 @@ setTags([])   // <- use your actual state setter for tags
             </CardContent>
           </Card>
 
-             <div className="space-y-3">
-           
-
-                  {/* PayPal Button */}
-                
-              
-            </div>
+          {/* Payment Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Listing Fee</CardTitle>
+              <CardDescription>Pay $5 to list your item on StudentMarket</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!paymentCompleted ? (
+                <div className="space-y-4">
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      💡 A $5 listing fee helps maintain quality listings and prevents spam
+                    </p>
+                  </div>
+                  <Button 
+                    type="button"
+                    onClick={handlePayment}
+                    disabled={paymentLoading}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    {paymentLoading ? "Processing..." : "Pay $5 Listing Fee"}
+                  </Button>
+                </div>
+              ) : (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm text-green-800 flex items-center gap-2">
+                    ✅ Payment completed! You can now list your item.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Submit */}
           <div className="flex gap-4">
             <Button type="button" variant="outline" asChild className="flex-1 bg-transparent">
               <Link href="/">Cancel</Link>
             </Button>
-            <Button type="submit" className="flex-1 bg-accent hover:bg-accent/90" disabled={isLoading}>
-              {isLoading ? "Creating Listing..." : "List Item"}
+            <Button 
+              type="submit" 
+              className={`flex-1 ${paymentCompleted ? 'bg-accent hover:bg-accent/90' : 'bg-gray-400 cursor-not-allowed'}`}
+              disabled={isLoading || !paymentCompleted}
+            >
+              {isLoading ? "Creating Listing..." : paymentCompleted ? "List Item" : "Complete Payment First"}
             </Button>
           </div>
         </form>

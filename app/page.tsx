@@ -33,21 +33,61 @@ export default function HomePage() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const [showMobileCategories, setShowMobileCategories] = useState(false)
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [favorites, setFavorites] = useState<Set<string>>(new Set())
+  const [isLoading, setIsLoading] = useState(false)
+  const [currentTime, setCurrentTime] = useState(new Date())
+  const [visibleProducts] = useState(4)
+
 
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!user) router.push("/auth/signin")
     }, 5000)
-    return () => clearTimeout(timer)
+    
+    const timeInterval = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 60000)
+    
+    return () => {
+      clearTimeout(timer)
+      clearInterval(timeInterval)
+    }
   }, [user, router])
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
-    router.push(searchQuery.trim() ? `/search?q=${encodeURIComponent(searchQuery.trim())}` : "/search")
+    setIsLoading(true)
+    try {
+      await new Promise(resolve => setTimeout(resolve, 500))
+      router.push(searchQuery.trim() ? `/search?q=${encodeURIComponent(searchQuery.trim())}` : "/search")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleCategoryClick = (categoryId: string) => router.push(`/search?category=${categoryId}`)
+
+  const toggleFavorite = (productId: string) => {
+    setFavorites(prev => {
+      const newFavorites = new Set(prev)
+      if (newFavorites.has(productId)) {
+        newFavorites.delete(productId)
+      } else {
+        newFavorites.add(productId)
+      }
+      return newFavorites
+    })
+  }
+
+
+
+  const getTimeBasedGreeting = () => {
+    const hour = currentTime.getHours()
+    if (hour < 12) return "Good Morning"
+    if (hour < 17) return "Good Afternoon"
+    return "Good Evening"
+  }
 
   return (
     <motion.div className="min-h-screen bg-gray-50" initial="hidden" animate="show" variants={container}>
@@ -68,10 +108,11 @@ export default function HomePage() {
             <form onSubmit={handleSearch} className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
-                placeholder="Search textbooks, electronics..."
+                placeholder={`Search textbooks, electronics... ${isLoading ? '(Searching...)' : ''}`}
                 className="pl-10 rounded-xl focus:ring-2 focus:ring-accent"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                disabled={isLoading}
               />
             </form>
           </div>
@@ -82,9 +123,15 @@ export default function HomePage() {
         <div className="hidden md:flex items-center gap-4">
           {isAuthenticated ? (
             <>
-            <span className="text-sm hidden sm:block"> <span className="text-gray-500">Welcome In Site</span>{" "} (..) </span>
+            <span className="text-sm hidden sm:block"> 
+              <span className="text-gray-500">{getTimeBasedGreeting()}</span>{" "} 
+              <span className="font-medium">{user?.name || 'Student'}</span>
+            </span>
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/dashboard">Dashboard</Link>
+              </Button>
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/chat">Messages</Link>
               </Button>
               <Button variant="ghost" size="sm" onClick={signOut}>Sign Out</Button>
               <Button size="sm" className="bg-accent text-white rounded-xl" asChild>
@@ -106,19 +153,20 @@ export default function HomePage() {
         </div>
 
         {/* Mobile Hamburger */}
-        <div className="md:hidden">
+        <div className="md:hidden cursor-pointer">
           <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6 cursor-pointer " />}
           </button>
         </div>
       </div>
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-card/90 backdrop-blur-md shadow-md py-4 px-4 flex flex-col gap-2">
+        <div className="md:hidden bg-card/90 backdrop-blur-md shadow-md py-4 px-4 flex flex-col gap-2 cursor-pointer">
           {isAuthenticated ? (
             <>
               <Link href="/dashboard" className="block py-2 px-4 rounded hover:bg-accent/20">Dashboard</Link>
+              <Link href="/chat" className="block py-2 px-4 rounded hover:bg-accent/20">Messages</Link>
               <button onClick={signOut} className="block py-2 px-4 rounded hover:bg-accent/20 text-left">Sign Out</button>
               <Link href="/sell" className="block py-2 px-4 rounded hover:bg-accent/20">Sell Item</Link>
             </>
@@ -157,7 +205,7 @@ export default function HomePage() {
             The trusted marketplace for college students. Find textbooks, electronics, furniture and more from verified students at your university.
           </motion.p>
           <Link href="/search">
-            <button className="px-6 py-3 bg-accent text-white font-semibold rounded-xl shadow-lg hover:scale-105 transition-transform">
+            <button className="cursor-pointer px-6 py-3 bg-accent text-white font-semibold rounded-xl shadow-lg hover:scale-105 transition-transform">
               Get Started
             </button>
           </Link>
@@ -209,7 +257,7 @@ export default function HomePage() {
     </motion.div>
 
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {mockProducts.slice(0, 4).map((product) => (
+      {mockProducts.slice(0, visibleProducts).map((product) => (
         <motion.div key={product.id} variants={container}>
           <Card className="group hover:shadow-2xl transition-all duration-200 rounded-2xl overflow-hidden">
             <CardHeader className="p-0">
@@ -219,8 +267,22 @@ export default function HomePage() {
                   alt={product.title}
                   className="w-full h-48 object-cover"
                 />
-                <Button size="sm" variant="ghost" className="absolute top-2 right-2 bg-white/80 hover:bg-white">
-                  <Heart className="w-4 h-4" />
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  className="absolute top-2 right-2 bg-white/80 hover:bg-white"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    toggleFavorite(product.id)
+                  }}
+                >
+                  <Heart 
+                    className={`w-4 h-4 transition-colors ${
+                      favorites.has(product.id) 
+                        ? 'fill-red-500 text-red-500' 
+                        : 'text-gray-600 hover:text-red-500'
+                    }`} 
+                  />
                 </Button>
                 <Badge className="absolute top-2 left-2 bg-accent">{product.condition}</Badge>
               </div>
@@ -247,15 +309,52 @@ export default function HomePage() {
                 </div>
               </div>
             </CardContent>
-            <CardFooter className="p-4 pt-0">
-              <Button className="w-full bg-transparent" variant="outline" asChild>
-                <Link href={`/product/${product.id}`}>View Details</Link>
-              </Button>
-            </CardFooter>
+           <CardFooter className="p-4 flex flex-col gap-2">
+  {/* View Details Button */}
+  <Button
+    asChild
+    variant="outline"
+    className="w-full rounded-xl border-2 border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700 transition"
+  >
+    <Link href={`/product/${product.id}`}>View Details</Link>
+  </Button>
+
+  {/* Chat and Buy Row */}
+  
+  
+    
+    <Button
+      className="flex-1 w-full cursor-pointer rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-md transition"
+      onClick={() => {
+        const paypalProduct = {
+          id: product.id,
+          title: product.title,
+          price: product.price,
+        }
+        fetch('/api/paypal/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: [
+              { ...paypalProduct, name: paypalProduct.title, quantity: 1 },
+            ],
+          }),
+        })
+          .then((res) => res.json())
+          .then((data) => data.url && (window.location.href = data.url))
+      }}
+    >
+      Buy ${product.price}
+    </Button>
+
+</CardFooter>
+
           </Card>
         </motion.div>
       ))}
     </div>
+    
+  
   </div>
 </motion.section>
 
@@ -280,12 +379,9 @@ export default function HomePage() {
         List your used textbooks, electronics, or other items and connect with
         fellow students nearby. Quick, safe, and hassle-free!
       </p>
-      <a
-        href="/sell"
-        className="inline-block bg-accent text-white px-6 py-3 rounded-lg shadow-md hover:bg-accent/90 transition w-full sm:w-auto text-center"
-      >
-        Start Selling
-      </a>
+      <Button asChild className="bg-accent text-white px-6 py-3 rounded-lg shadow-md hover:bg-accent/90 transition w-full sm:w-auto">
+        <Link href="/sell">Start Selling</Link>
+      </Button>
     </motion.div>
 
     {/* Image */}
@@ -327,14 +423,13 @@ export default function HomePage() {
                 <span className="text-sm font-medium text-gray-600">Products Sold:</span>
                 <p className="text-lg font-semibold text-green-600">{seller.productsSold}</p>
               </div>
-              <Button className="mt-4 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-medium transition">
-              <Link
-  href={`/top-sellers/${seller.id}`}
-  
->
-  View Profile
-</Link>
-
+              <Button 
+                className="mt-4 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-medium transition"
+                asChild
+              >
+                <Link href={`/top-sellers/${seller.id}`}>
+                  View Profile
+                </Link>
               </Button>
             </Card>
           </motion.div>
@@ -363,7 +458,10 @@ export default function HomePage() {
                     <p className="text-sm text-muted-foreground line-clamp-3 mb-4">{post.excerpt}</p>
                   </CardContent>
                   <CardFooter className="p-4 pt-0">
-                    <Button className="text-sm font-medium text-yellow-600 border-b-2 border-yellow-400 hover:border-yellow-600 hover:text-yellow-700 transition">
+                    <Button 
+                      className="text-sm font-medium text-yellow-600 border-b-2 border-yellow-400 hover:border-yellow-600 hover:text-yellow-700 transition"
+                      asChild
+                    >
                       <Link href={`/blog/${post.slug}`}>Read More</Link>
                     </Button>
 
@@ -496,7 +594,8 @@ export default function HomePage() {
 
     {/* Bottom Copyright */}
     <div className="border-t border-white/20 mt-8 pt-6 text-center text-sm text-white/70">
-      <p>&copy; 2024 StudentMarket. All rights reserved.</p>
+      <p>&copy; {currentTime.getFullYear()} StudentMarket. All rights reserved.</p>
+      <p className="mt-1 text-xs">Last updated: {currentTime.toLocaleDateString()}</p>
     </div>
   </div>
 </motion.footer>
