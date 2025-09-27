@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import type { User } from "./types";
+import { useRouter } from "next/navigation";
 
 interface AuthContextType {
   user: User | null;
@@ -23,13 +24,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const router  = useRouter()
 
-  // 🔎 On mount → check saved session
-  // Check saved session on mount
+  // Initialize: only restore session if it was actively created
   useEffect(() => {
-    const savedUser = localStorage.getItem("user_session");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+    const sessionActive = localStorage.getItem("session_active");
+    if (sessionActive === "true") {
+      restoreSession();
     }
     setIsLoading(false);
   }, []);
@@ -39,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     
     // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+  
     
     const newUser: User & { password: string } = {
       id: Date.now().toString(),
@@ -60,12 +61,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   };
 
+  // Restore session (only call this manually)
+  const restoreSession = () => {
+    const savedUser = localStorage.getItem("user_session");
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+      return true;
+    }
+    return false;
+  };
+
   // Mock Sign In
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
     
     // Check if user exists
     const registeredUser = localStorage.getItem("registered_user");
@@ -86,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { password: _, ...userWithoutPassword } = userData;
     setUser(userWithoutPassword);
     localStorage.setItem("user_session", JSON.stringify(userWithoutPassword));
+    localStorage.setItem("session_active", "true"); // Mark session as active
     setIsLoading(false);
   };
 
@@ -93,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = () => {
     setUser(null);
     localStorage.removeItem("user_session");
+    localStorage.removeItem("session_active");
   };
 
 

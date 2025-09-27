@@ -15,6 +15,7 @@ import { motion } from "framer-motion"
 import Typewriter from "typewriter-effect"
 
 
+
 // Motion variants for staggered animations
 const container = {
   hidden: { opacity: 0 },
@@ -37,23 +38,29 @@ export default function HomePage() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [mounted, setMounted] = useState(false)
   const [visibleProducts] = useState(4)
 
-
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!user) router.push("/auth/signin")
-    }, 5000)
+    setMounted(true)
+    
+    // Auto redirect to signin after 3 seconds if not authenticated
+    let redirectTimer: NodeJS.Timeout
+    if (!isAuthenticated && !user) {
+      redirectTimer = setTimeout(() => {
+        router.push("/auth/signin")
+      }, 3000)
+    }
     
     const timeInterval = setInterval(() => {
       setCurrentTime(new Date())
     }, 60000)
     
     return () => {
-      clearTimeout(timer)
+      if (redirectTimer) clearTimeout(redirectTimer)
       clearInterval(timeInterval)
     }
-  }, [user, router])
+  }, [isAuthenticated, user, router])
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -123,10 +130,12 @@ export default function HomePage() {
         <div className="hidden md:flex items-center gap-4">
           {isAuthenticated ? (
             <>
-            <span className="text-sm hidden sm:block"> 
-              <span className="text-gray-500">{getTimeBasedGreeting()}</span>{" "} 
-              <span className="font-medium">{user?.name || 'Student'}</span>
-            </span>
+            {user && (
+              <span className="text-sm hidden sm:block"> 
+                <span className="text-gray-500">{getTimeBasedGreeting()}</span>{" "} 
+                <span className="font-medium">{user.name}</span>
+              </span>
+            )}
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/dashboard">Dashboard</Link>
               </Button>
@@ -326,6 +335,12 @@ export default function HomePage() {
     <Button
       className="flex-1 w-full cursor-pointer rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-md transition"
       onClick={() => {
+        // Check if user is authenticated before allowing purchase
+        if (!isAuthenticated || !user) {
+          router.push('/auth/signin')
+          return
+        }
+        
         const paypalProduct = {
           id: product.id,
           title: product.title,
@@ -594,8 +609,8 @@ export default function HomePage() {
 
     {/* Bottom Copyright */}
     <div className="border-t border-white/20 mt-8 pt-6 text-center text-sm text-white/70">
-      <p>&copy; {currentTime.getFullYear()} StudentMarket. All rights reserved.</p>
-      <p className="mt-1 text-xs">Last updated: {currentTime.toLocaleDateString()}</p>
+      <p>&copy; {mounted ? currentTime.getFullYear() : new Date().getFullYear()} StudentMarket. All rights reserved.</p>
+      <p className="mt-1 text-xs">Last updated: {mounted ? currentTime.toLocaleDateString('en-US') : ''}</p>
     </div>
   </div>
 </motion.footer>
