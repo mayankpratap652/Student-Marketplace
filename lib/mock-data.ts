@@ -44,7 +44,7 @@ export const mockProducts: Product[] = [
     title: "Calculus Textbook - 8th Edition",
     description:
       "Excellent condition calculus textbook. Used for one semester only. All pages intact, minimal highlighting.",
-    price: 85,
+    price: 6,
     images: ["https://images.unsplash.com/photo-1524995997946-a1c2e315a42f"],
     category: mockCategories[0],
     condition: "like-new",
@@ -63,7 +63,7 @@ export const mockProducts: Product[] = [
     title: "MacBook Air M1 - 13 inch",
     description:
       "Selling my MacBook Air M1 as I upgraded to a newer model. Great for students, excellent battery life.",
-    price: 750,
+    price: 12,
     images: ["https://images.unsplash.com/photo-1517336714731-489689fd1ca8"],
     category: mockCategories[1],
     condition: "good",
@@ -82,7 +82,7 @@ export const mockProducts: Product[] = [
     title: "Wooden Study Chair",
     description:
       "Strong wooden chair, perfect for dorms or study rooms. Lightly used, no damage.",
-    price: 45,
+    price: 10,
     images: ["https://images.unsplash.com/photo-1503602642458-232111445657"],
     category: mockCategories[2],
     condition: "good",
@@ -101,7 +101,7 @@ export const mockProducts: Product[] = [
     title: "Casual T-shirt - Medium",
     description:
       "Blue casual T-shirt, barely worn. Comfortable cotton fabric.",
-    price: 15,
+    price: 24,
     images: ["https://images.unsplash.com/photo-1521572163474-6864f9cf17ab"],
     category: mockCategories[3],
     condition: "like-new",
@@ -120,7 +120,7 @@ export const mockProducts: Product[] = [
     title: "Football - Size 5",
     description:
       "Almost new football, used only in practice. Perfect grip and bounce.",
-    price: 25,
+    price: 27,
     images: ["https://images.unsplash.com/photo-1508609349937-5ec4ae374ebf"],
     category: mockCategories[4],
     condition: "like-new",
@@ -139,7 +139,7 @@ export const mockProducts: Product[] = [
     title: "Storage Box - Large",
     description:
       "Durable plastic storage box. Great for keeping clothes or books organized.",
-    price: 12,
+    price: 30,
     images: ["https://images.unsplash.com/photo-1720572742865-b57ccc2df130?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8c3RvcmFnZSUyMGJveHxlbnwwfHwwfHx8MA%3D%3D"],
     category: mockCategories[5],
     condition: "good",
@@ -175,7 +175,7 @@ export const mockProducts: Product[] = [
     id: "8",
     title: "Bookshelf - 4 Tier",
     description: "Tall wooden bookshelf, gently used, holds up to 200 books.",
-    price: 70,
+    price: 10,
     images: ["https://plus.unsplash.com/premium_photo-1698084059448-5bdc536e083a?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8VGFsbCUyMHdvb2RlbiUyMGJvb2tzaGVsZnxlbnwwfHwwfHx8MA%3D%3D"],
     category: mockCategories[2],
     condition: "good",
@@ -253,7 +253,7 @@ export const mockProducts: Product[] = [
     id: "12",
     title: "iPad Mini - 6th Gen",
     description: "Excellent condition iPad Mini, ideal for reading and notes.",
-    price: 320,
+    price: 40,
     images: ["https://images.unsplash.com/photo-1679759799183-8899c0d67b43?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8aSUyMHBhZCUyMG1pbml8ZW58MHx8MHx8fDA%3D"],
     category: mockCategories[1],
     condition: "like-new",
